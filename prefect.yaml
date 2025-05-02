@@ -1,21 +1,15 @@
 name: prefect-weather-pipeline
-prefect-version: 2.13.0
+prefect-version: 3.3.7
+
+entrypoint: pipeline_flow.py:main_pipeline
+
+work_pool:
+  name: cloud-pool
+  work_queue_name: default
+  job_variables: {}
 
 pull:
-- prefect.deployments.steps.git_clone:
-    repository: https://github.com/HailunMa1114/prefect-weather-pipeline
-    branch: main
-
-deployments:
-- name: weather-etl-deployment
-  entrypoint: pipeline_flow.py:main_pipeline
-  work_pool:
-    name: cloud-pool
-    work_queue_name: default
-    job_variables: {}
-  parameters:
-    data_dir: "data/"
-    output_path: "extracted_data/state_panel.csv"
-    api_key: ""
-
-
+  - prefect.deployments.steps.git_clone:
+      repository: https://github.com/HailunMa1114/prefect-weather-pipeline
+      branch: main
+      access_token: "{{ prefect.blocks.github-credentials.gh-token.access_token }}"

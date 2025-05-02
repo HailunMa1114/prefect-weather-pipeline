@@ -2,7 +2,6 @@ from prefect import flow, task
 import pandas as pd
 import os
 from dotenv import load_dotenv
-import sqlite3  
 
 # Load environment variables
 load_dotenv()
@@ -82,37 +81,6 @@ def task_save_city_weather(df: pd.DataFrame, path: str = "extracted_data/city_we
     df.to_csv(path, index=False)
     print(f"Saved city weather data to {path}")
 
-@task
-def task_save_city_to_sql(df: pd.DataFrame, db_path: str = "extracted_data/weather.db"):
-    # Clean column names to ensure SQLite compatibility
-    def clean_col(col, index):
-        if not col or str(col).strip() == "":
-            return f"col_{index}"
-        cleaned = (
-            str(col).strip()
-            .replace(" ", "_")
-            .replace("-", "_")
-            .replace("(", "")
-            .replace(")", "")
-            .replace("/", "_")
-            .replace(".", "")
-            .replace("[", "")
-            .replace("]", "")
-        )
-        # Ensure column doesn't start with a digit
-        if cleaned[0].isdigit():
-            cleaned = f"col_{index}_{cleaned}"
-        return cleaned
-
-    df.columns = [clean_col(col, i) for i, col in enumerate(df.columns)]
-
-    conn = sqlite3.connect(db_path)
-    df.to_sql("city_weather", conn, if_exists="replace", index=False)
-    conn.close()
-
-    print(f"Saved city weather data to {db_path} (table: city_weather)")
-    print("Columns:", df.columns.tolist())
-    print(df.head())
 
 # === Main Flow ===
 
@@ -142,9 +110,6 @@ def main_pipeline(
     # Save to CSV
     task_save_panel(validated_panel, output_path)
     task_save_city_weather(city_weather)
-
-    # Save to SQLite
-    task_save_city_to_sql(city_weather)
 
 
 if __name__ == "__main__":
