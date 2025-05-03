@@ -2,6 +2,8 @@ from prefect import flow, task
 import pandas as pd
 import os
 from dotenv import load_dotenv
+import sqlite3  
+import re
 
 # Load environment variables
 load_dotenv()
@@ -81,6 +83,37 @@ def task_save_city_weather(df: pd.DataFrame, path: str = "extracted_data/city_we
     df.to_csv(path, index=False)
     print(f"Saved city weather data to {path}")
 
+@task
+def task_save_city_to_sql(df):
+
+    rename_map = {
+        "city": "city_name",
+        "date": "record_date",
+        "temperature": "temperature_c",
+        "feels_like": "feels_like_c",
+        "humidity": "humidity_pct",
+        "wind_speed": "wind_kph",
+        "weather": "weather_desc",
+        "source": "data_source"
+    }
+    df = df.rename(columns=rename_map)
+
+    # Clean column names
+    df.columns = [
+        re.sub(r'\W+', '_', str(col)).strip('_').lower()
+        if str(col).strip()
+        else f"col_{i}"
+        for i, col in enumerate(df.columns)
+    ]
+
+    print("Cleaned Columns:", df.columns.tolist())
+    print("Shape:", df.shape)
+    print("Data Sample:\n", df.head())
+
+    conn = sqlite3.connect("extracted_data/weather_data.db")
+    df.to_sql("city_weather", conn, if_exists="replace", index=False, method="multi")
+    conn.close()
+
 
 # === Main Flow ===
 
@@ -111,8 +144,11 @@ def main_pipeline(
     task_save_panel(validated_panel, output_path)
     task_save_city_weather(city_weather)
 
+    # Save to SQLite
+    task_save_city_to_sql(city_weather)
+
 
 if __name__ == "__main__":
-    # For local test only
-    main_pipeline()
-
+    if not api_key:
+        raise ValueError("API key not found. Check your .env file.")
+    main_pipeline(api_key=api_key)

@@ -1,15 +1,32 @@
-name: prefect-weather-pipeline
+# Welcome to your prefect.yaml file! You can use this file for storing and managing
+# configuration for deploying your flows. We recommend committing this file to source
+# control along with your flow code.
+
+name: 5500final
 prefect-version: 3.3.7
 
-entrypoint: pipeline_flow.py:main_pipeline
+build: null
 
-work_pool:
-  name: cloud-pool
-  work_queue_name: default
-  job_variables: {}
+push: null
 
 pull:
-  - prefect.deployments.steps.git_clone:
-      repository: https://github.com/HailunMa1114/prefect-weather-pipeline
-      branch: main
-      access_token: "{{ prefect.blocks.github-credentials.gh-token.access_token }}"
+- prefect.deployments.steps.set_working_directory:
+    directory: /Users/hailing/Desktop/5500final
+
+deployments:
+- name: Weather ETL Flow
+  version: null
+  tags: []
+  concurrency_limit: null
+  description: null
+  entrypoint: pipeline_flow.py:main_pipeline
+  parameters: {}
+  work_pool:
+    name: climate-pool
+    work_queue_name: null
+    job_variables: {}
+  schedules:
+  - interval: 43200.0
+    anchor_date: '2025-05-02T04:39:37.384524+00:00'
+    timezone: UTC
+    active: true
